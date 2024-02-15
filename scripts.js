@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     showLoader(true); 
     fetchQuotesWithAjax();
     fetchTutorialsWithAjax();
+    fetchLatestVideos(); 
 });
 
 function fetchQuotesWithAjax() {
@@ -155,6 +156,86 @@ function generateStars(starCount) {
     }
     return starsHTML;
 }
+
+function fetchLatestVideos() {
+    showLoader(true);
+    const xhr = new XMLHttpRequest();
+    const startTime = Date.now(); 
+    xhr.open('GET', 'https://smileschool-api.hbtn.info/latest-videos', true);
+
+    xhr.onload = function() {
+        if (this.status >= 200 && this.status < 300) {
+            const videos = JSON.parse(this.responseText);
+            const elapsedTime = Date.now() - startTime; 
+            const delay = elapsedTime > 1000 ? 0 : 1000 - elapsedTime; 
+            setTimeout(() => {
+                populateLatestVideos(videos);
+                showLoader(false);
+            }, delay);
+        } else {
+            console.error('Error fetching latest videos:', this.statusText);
+            showLoader(false);
+        }
+    };
+
+    xhr.onerror = function() {
+        console.error('Network error');
+        showLoader(false);
+    };
+
+    xhr.send();
+}
+
+
+function populateLatestVideos(videos) {
+    const carouselInner = document.getElementById('carouselExampleControls3').querySelector('.carousel-inner');
+    carouselInner.innerHTML = '';
+
+    const slidesNeeded = Math.ceil(videos.length / 4);
+
+    for (let slideIndex = 0; slideIndex < slidesNeeded; slideIndex++) {
+        const slide = document.createElement('div');
+        slide.className = `carousel-item ${slideIndex === 0 ? 'active' : ''}`;
+        const row = document.createElement('div');
+        row.className = 'row align-items-center mx-auto';
+
+        for (let i = 0; i < 4; i++) {
+            const videoIndex = slideIndex * 4 + i;
+            if (videoIndex >= videos.length) break;
+            const video = videos[videoIndex];
+            const col = document.createElement('div');
+            col.className = 'col-12 col-sm-6 col-md-6 col-lg-3 d-flex justify-content-center';
+            col.innerHTML = `
+                <div class="card">
+                    <img src="${video.thumb_url}" class="card-img-top" alt="Video thumbnail">
+                    <div class="card-img-overlay text-center">
+                        <img src="images/play.png" alt="Play" width="64px" class="align-self-center play-overlay">
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title font-weight-bold">${video.title}</h5>
+                        <p class="card-text text-muted">${video['sub-title']}</p>
+                        <div class="creator d-flex align-items-center">
+                            <img src="${video.author_pic_url}" alt="Creator of Video" width="30px" class="rounded-circle">
+                            <h6 class="pl-3 m-0 main-color">${video.author}</h6>
+                        </div>
+                        <div class="info pt-3 d-flex justify-content-between">
+                            <div class="rating">${generateStars(video.star)}</div>
+                            <span class="main-color">${video.duration}</span>
+                        </div>
+                    </div>
+                </div>`;
+            row.appendChild(col);
+        }
+
+        slide.appendChild(row);
+        carouselInner.appendChild(slide);
+    }
+
+    var carouselElement = document.querySelector('#carouselExampleControls3');
+    var carouselInstance = new bootstrap.Carousel(carouselElement);
+}
+
+
 
 function showLoader(show) {
     const loader = document.getElementById('globalLoader');
