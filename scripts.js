@@ -59,10 +59,10 @@ function populateWithQuotes(quotes) {
 }
 
 function fetchTutorialsWithAjax() {
-    // Mostrar o loader antes de iniciar a chamada AJAX
+   
     showLoader(true);
 
-    // Iniciar a chamada AJAX após um delay de 1 segundo
+    
     setTimeout(() => {
         const xhr = new XMLHttpRequest();
         xhr.open('GET', 'https://smileschool-api.hbtn.info/popular-tutorials', true);
@@ -74,40 +74,40 @@ function fetchTutorialsWithAjax() {
             } else {
                 console.error('Error fetching tutorials:', this.statusText);
             }
-            // Esconder o loader após receber a resposta
+          
             showLoader(false);
         };
 
         xhr.onerror = function() {
             console.error('Network error');
-            // Esconder o loader em caso de erro na rede
+         
             showLoader(false);
         };
 
         xhr.send();
-    }, 1000); // Delay de 1 segundo
+    }, 1000); 
 }
 
 function populateTutorials(tutorials) {
     const carouselInner = document.getElementById('popularCarouselInner');
-    carouselInner.innerHTML = ''; // Limpar o conteúdo existente
+    carouselInner.innerHTML = ''; 
 
-    // Certifique-se de que haja pelo menos 4 tutoriais para começar a criação dos slides
+   
     if (tutorials.length < 4) {
         console.error('Não há tutoriais suficientes para preencher o carrossel.');
         return;
     }
 
-    // Criar os slides
+  
     for (let i = 0; i < tutorials.length - 3; i++) {
         let slide = document.createElement('div');
         slide.className = `carousel-item ${i === 0 ? 'active' : ''}`;
         let row = document.createElement('div');
         row.className = 'row';
 
-        // Adicionando 4 elementos por slide
+       
         for (let j = i; j < i + 4; j++) {
-            // Verificar se o índice existe na lista de tutoriais
+           
             if (tutorials[j]) {
                 const tutorial = tutorials[j];
                 const col = document.createElement('div');
@@ -139,7 +139,7 @@ function populateTutorials(tutorials) {
         carouselInner.appendChild(slide);
     }
 
-    // Inicializar ou atualizar o carrossel Bootstrap
+    
     var carouselElement = document.querySelector('#carouselExampleControls2');
     var carouselInstance = new bootstrap.Carousel(carouselElement, {
         interval: 5000,

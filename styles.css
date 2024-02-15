@@ -235,6 +235,7 @@
   padding-left: var(--quotes-arrows-pad);
 }
 
+
 .loader {
   display: flex;
     justify-content: center;
