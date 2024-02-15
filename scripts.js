@@ -1,29 +1,41 @@
 document.addEventListener('DOMContentLoaded', function() {
-    showLoader(true); 
-    fetchQuotes();
+    showLoader(true);
+    fetchQuotesWithAjax();
 });
 
-function fetchQuotes() {
-    const startTime = Date.now(); // since the api response is fast we will simulate a delay to show loader for 1 second
-    fetch('https://smileschool-api.hbtn.info/quotes')
-        .then(response => response.json())
-        .then(data => {
+function fetchQuotesWithAjax() {
+    const xhr = new XMLHttpRequest();
+    const startTime = Date.now(); // we will simulate a delay to ensure that the loader is showing
+    xhr.open('GET', 'https://smileschool-api.hbtn.info/quotes', true);
+
+    xhr.onload = function() {
+        if (this.status >= 200 && this.status < 300) {
+            const data = JSON.parse(this.responseText);
             const elapsedTime = Date.now() - startTime; 
             const delay = elapsedTime > 1000 ? 0 : 1000 - elapsedTime; 
             setTimeout(() => { 
                 populateCarousel(data);
-                showLoader(false); 
+                showLoader(false);
             }, delay);
-        })
-        .catch(error => {
-            console.error('Error fetching quotes:', error);
+        } else {
+            
+            console.error('Error fetching quotes:', this.statusText);
             showLoader(false);
-        });
+        }
+    };
+
+    xhr.onerror = function() {
+        
+        console.error('Network error');
+        showLoader(false);
+    };
+
+    xhr.send();
 }
 
 function populateCarousel(quotes) {
     const carouselInner = document.getElementById('quotesCarousel');
-    carouselInner.innerHTML = '';
+    carouselInner.innerHTML = ''; 
     quotes.forEach((quote, index) => {
         const item = document.createElement('div');
         item.className = `carousel-item ${index === 0 ? 'active' : ''}`;
