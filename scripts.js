@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchQuotesWithAjax();
     fetchTutorialsWithAjax();
     fetchLatestVideos(); 
+    fetchCoursesWithAjax();
 });
 
 function fetchQuotesWithAjax() {
@@ -235,6 +236,76 @@ function populateLatestVideos(videos) {
     var carouselInstance = new bootstrap.Carousel(carouselElement);
 }
 
+function fetchCoursesWithAjax() {
+    showLoader(true); 
+    const xhr = new XMLHttpRequest();
+    const startTime = Date.now(); 
+    xhr.open('GET', 'https://smileschool-api.hbtn.info/courses', true);
+
+    xhr.onload = function() {
+        if (this.status >= 200 && this.status < 300) {
+            const data = JSON.parse(this.responseText);
+            const elapsedTime = Date.now() - startTime;
+            const delay = elapsedTime > 1000 ? 0 : 1000 - elapsedTime; 
+            setTimeout(() => {
+                populateVideos(data.courses); 
+                showLoader(false); 
+            }, delay);
+        } else {
+            console.error('Error fetching courses:', this.statusText);
+            showLoader(false); 
+        }
+    };
+
+    xhr.onerror = function() {
+        console.error('Network error');
+        showLoader(false); 
+    };
+
+    xhr.send();
+}
+function populateVideos(courses) {
+    const row = document.getElementById('video-results') 
+    row.innerHTML = ''; 
+
+    
+    courses.forEach(course => {
+        
+        const col = document.createElement('div');
+        col.className = 'col-12 col-sm-4 col-lg-3 d-flex justify-content-center';
+
+        
+        let cardHTML = `
+            <div class="card">
+                <img src="${course.thumb_url}" class="card-img-top" alt="${course.title}" />
+                <div class="card-img-overlay text-center">
+                    <img src="images/play.png" alt="Play" width="64px" class="align-self-center play-overlay" />
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title font-weight-bold">${course.title}</h5>
+                    <p class="card-text text-muted">${course.sub_title}</p>
+                    <div class="creator d-flex align-items-center">
+                        <img src="${course.author_pic_url}" alt="Creator of Video" width="30px" class="rounded-circle" />
+                        <h6 class="pl-3 m-0 main-color">${course.author}</h6>
+                    </div>
+                    <div class="info pt-3 d-flex justify-content-between">
+                        <div class="rating">`;
+
+     
+        cardHTML += generateStars(course.star);
+
+        cardHTML += `
+                        </div>
+                        <span class="main-color">${course.duration}</span>
+                    </div>
+                </div>
+            </div>`;
+
+       
+        col.innerHTML = cardHTML;
+        row.appendChild(col);
+    });
+}
 
 
 function showLoader(show) {
