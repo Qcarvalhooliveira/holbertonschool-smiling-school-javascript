@@ -236,34 +236,60 @@ function populateLatestVideos(videos) {
     var carouselInstance = new bootstrap.Carousel(carouselElement);
 }
 
+function populateTopicsAndSorts(data) {
+    
+    const topicsDropdown = document.querySelector('.dropdown-menu[aria-labelledby="dropdownMenuLinkTopic"]');
+    data.topics.forEach((topic) => {
+        const item = document.createElement('a');
+        item.className = 'dropdown-item';
+        item.href = '#';
+        item.textContent = topic.charAt(0).toUpperCase() + topic.slice(1); 
+        topicsDropdown.appendChild(item);
+    });
+
+    
+    const sortsDropdown = document.querySelector('.dropdown-menu[aria-labelledby="dropdownMenuLinkSort"]');
+    data.sorts.forEach((sort) => {
+        const item = document.createElement('a');
+        item.className = 'dropdown-item';
+        item.href = '#';
+        item.textContent = sort.replace('_', ' ').charAt(0).toUpperCase() + sort.replace('_', ' ').slice(1); // Substituir underscores por espaços e capitalizar a primeira letra
+        sortsDropdown.appendChild(item);
+    });
+}
 function fetchCoursesWithAjax() {
     showLoader(true); 
     const xhr = new XMLHttpRequest();
-    const startTime = Date.now(); 
-    xhr.open('GET', 'https://smileschool-api.hbtn.info/courses', true);
+    const url = 'https://smileschool-api.hbtn.info/courses';
+    xhr.open('GET', url, true);
 
     xhr.onload = function() {
         if (this.status >= 200 && this.status < 300) {
             const data = JSON.parse(this.responseText);
-            const elapsedTime = Date.now() - startTime;
-            const delay = elapsedTime > 1000 ? 0 : 1000 - elapsedTime; 
-            setTimeout(() => {
+            const delay = 1000; 
+
+            setTimeout(() => { 
                 populateVideos(data.courses); 
+                populateTopicsAndSorts(data); 
                 showLoader(false); 
             }, delay);
         } else {
             console.error('Error fetching courses:', this.statusText);
-            showLoader(false); 
+            setTimeout(() => showLoader(false), 1000); 
         }
     };
 
     xhr.onerror = function() {
         console.error('Network error');
-        showLoader(false); 
+        setTimeout(() => showLoader(false), 1000); 
     };
 
     xhr.send();
 }
+
+
+
+
 function populateVideos(courses) {
     const row = document.getElementById('video-results') 
     row.innerHTML = ''; 
