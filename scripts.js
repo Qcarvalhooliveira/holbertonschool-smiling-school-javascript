@@ -2,13 +2,20 @@ document.addEventListener('DOMContentLoaded', function() {
     showLoader(true); 
     fetchQuotesWithAjax();
     fetchTutorialsWithAjax();
-    fetchLatestVideos(); 
+    fetchLatestVideos();
     fetchCoursesWithAjax();
+
+    var searchInput = document.querySelector('.search-text-area');
+    searchInput.addEventListener('input', function() {
+        var searchText = this.value;
+        currentFilter.q = searchText; 
+        applyFilters(); 
+    });
 });
 
 function fetchQuotesWithAjax() {
     const xhr = new XMLHttpRequest();
-    const startTime = Date.now(); // we will simulate a delay to ensure that the loader is showing
+    const startTime = Date.now(); 
     xhr.open('GET', 'https://smileschool-api.hbtn.info/quotes', true);
 
     xhr.onload = function() {
@@ -187,7 +194,6 @@ function fetchLatestVideos() {
     xhr.send();
 }
 
-
 function populateLatestVideos(videos) {
     const carouselInner = document.getElementById('carouselExampleControls3').querySelector('.carousel-inner');
     carouselInner.innerHTML = '';
@@ -236,71 +242,132 @@ function populateLatestVideos(videos) {
     var carouselInstance = new bootstrap.Carousel(carouselElement);
 }
 
-function populateTopicsAndSorts(data) {
-    
-    const topicsDropdown = document.querySelector('.dropdown-menu[aria-labelledby="dropdownMenuLinkTopic"]');
-    data.topics.forEach((topic) => {
-        const item = document.createElement('a');
-        item.className = 'dropdown-item';
-        item.href = '#';
-        item.textContent = topic.charAt(0).toUpperCase() + topic.slice(1); 
-        topicsDropdown.appendChild(item);
-    });
+// for some reason when I made the api call to interpret the parametres I could not make this update reflect in a new call for the populate functions even if I could recive the response updated to serve the parametres passed. In other words, the function fetch (for a reason that I dont understand) could not call the function populate in any other time other than when the page was loaded. The solution I could think of was to make just one call to the api and populate an array with all the results and then I manipulate this array to respond to the filter that the user wants. Below the code that I made for this solution.
 
-    
-    const sortsDropdown = document.querySelector('.dropdown-menu[aria-labelledby="dropdownMenuLinkSort"]');
-    data.sorts.forEach((sort) => {
-        const item = document.createElement('a');
-        item.className = 'dropdown-item';
-        item.href = '#';
-        item.textContent = sort.replace('_', ' ').charAt(0).toUpperCase() + sort.replace('_', ' ').slice(1); // Substituir underscores por espaços e capitalizar a primeira letra
-        sortsDropdown.appendChild(item);
-    });
-}
+let allCoursesData = []; 
+let currentFilter = { topic: 'all', sort: 'most popular' }; 
+
 function fetchCoursesWithAjax() {
-    showLoader(true); 
+    showLoader(true);
     const xhr = new XMLHttpRequest();
     const url = 'https://smileschool-api.hbtn.info/courses';
+    
     xhr.open('GET', url, true);
 
     xhr.onload = function() {
         if (this.status >= 200 && this.status < 300) {
             const data = JSON.parse(this.responseText);
-            const delay = 1000; 
-
-            setTimeout(() => { 
-                populateVideos(data.courses); 
-                populateTopicsAndSorts(data); 
-                showLoader(false); 
-            }, delay);
+            allCoursesData = data.courses; 
+            populateTopicsAndSorts(data); 
+            applyFilters(); 
+            showLoader(false);
         } else {
-            console.error('Error fetching courses:', this.statusText);
-            setTimeout(() => showLoader(false), 1000); 
+           
+            showLoader(false);
         }
     };
 
     xhr.onerror = function() {
-        console.error('Network error');
-        setTimeout(() => showLoader(false), 1000); 
+      
+        showLoader(false);
     };
 
     xhr.send();
 }
 
+function applyFilters() {
+    let filteredCourses = allCoursesData;
 
+    
+    if (currentFilter.topic !== 'all') {
+        filteredCourses = filteredCourses.filter(course => course.topic.toLowerCase() === currentFilter.topic.toLowerCase());
+    }
+
+    
+    if (currentFilter.q && currentFilter.q.trim() !== '') {
+        filteredCourses = filteredCourses.filter(course => 
+            course.keywords.some(keyword => keyword.toLowerCase().includes(currentFilter.q.toLowerCase()))
+        );
+    }
+
+    if (currentFilter.sort === 'most_recent') {
+        filteredCourses.sort((a, b) => new Date(b.published_at * 1000) - new Date(a.published_at * 1000)); // Multiplicamos por 1000 para converter timestamp Unix (segundos) para milissegundos
+    } else if (currentFilter.sort === 'most_popular') {
+        filteredCourses.sort((a, b) => b.star - a.star);
+    } else if (currentFilter.sort === 'most_viewed') {
+        filteredCourses.sort((a, b) => b.views - a.views);
+    }
+
+    populateVideos(filteredCourses);
+}
+
+function populateTopicsAndSorts(data) {
+    const topicsDropdownButton = document.querySelector('#dropdownMenuLinkTopic');
+    const topicsDropdown = document.querySelector('.dropdown-menu[aria-labelledby="dropdownMenuLinkTopic"]');
+    const sortsDropdownButton = document.querySelector('#dropdownMenuLinkSort');
+    const sortsDropdown = document.querySelector('.dropdown-menu[aria-labelledby="dropdownMenuLinkSort"]');
+
+  
+    updateDropdownButtonText(topicsDropdownButton, currentFilter.topic, data.topics);
+
+ 
+    updateDropdownItems(topicsDropdown, data.topics, 'topic');
+
+    
+    updateDropdownButtonText(sortsDropdownButton, currentFilter.sort, data.sorts, true);
+
+   
+    updateDropdownItems(sortsDropdown, data.sorts, 'sort');
+}
+
+function updateDropdownItems(dropdownElement, filterOptions, filterType) {
+    dropdownElement.innerHTML = ''; 
+    filterOptions.forEach(option => {
+        const item = document.createElement('a');
+        item.className = 'dropdown-item';
+        item.href = '#';
+        item.textContent = option.charAt(0).toUpperCase() + option.slice(1).replace('_', ' ');
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentFilter[filterType] = option; 
+
+            
+            const buttonTextId = filterType === 'topic' ? 'dropdownMenuLinkTopic' : 'dropdownMenuLinkSort';
+            updateDropdownButtonText(document.querySelector(`#${buttonTextId}`), option);
+
+            applyFilters(); 
+        });
+        dropdownElement.appendChild(item);
+    });
+}
+
+function updateDropdownButtonText(dropdownButton, selectedOption) {
+   
+    let displayText = selectedOption.replace(/_/g, ' ').charAt(0).toUpperCase() + selectedOption.slice(1).replace(/_/g, ' ');
+
+
+    const spanElement = dropdownButton.querySelector('span');
+    if (spanElement) {
+        spanElement.textContent = displayText;
+    } else {
+        
+        dropdownButton.textContent = displayText;
+    }
+}
 
 
 function populateVideos(courses) {
-    const row = document.getElementById('video-results') 
+    const row = document.getElementById('video-results');
     row.innerHTML = ''; 
 
     
+    const videoCountSpan = document.querySelector('.video-count');
+    videoCountSpan.textContent = `${courses.length} videos`; 
+
     courses.forEach(course => {
-        
         const col = document.createElement('div');
         col.className = 'col-12 col-sm-4 col-lg-3 d-flex justify-content-center';
 
-        
         let cardHTML = `
             <div class="card">
                 <img src="${course.thumb_url}" class="card-img-top" alt="${course.title}" />
@@ -317,7 +384,6 @@ function populateVideos(courses) {
                     <div class="info pt-3 d-flex justify-content-between">
                         <div class="rating">`;
 
-     
         cardHTML += generateStars(course.star);
 
         cardHTML += `
@@ -327,12 +393,10 @@ function populateVideos(courses) {
                 </div>
             </div>`;
 
-       
         col.innerHTML = cardHTML;
         row.appendChild(col);
     });
 }
-
 
 function showLoader(show) {
     const loader = document.getElementById('globalLoader');
